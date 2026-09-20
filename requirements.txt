@@ -1,0 +1,2 @@
+# Runtime uses Python standard library only for the foundation phase.
+# Add provider/database dependencies only when explicitly implemented.
