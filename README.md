@@ -1,39 +1,45 @@
 # PROPHÈTE KESMANER HENRY — SOVEREIGN MASTER AI ENGINE
 
-## État
+This is a modular, provider-independent AI engine foundation. It is not a finished general intelligence and does not claim perfect or universally superior answers.
 
-Cette version fournit le noyau modulaire et l'API de fondation. Elle n'est pas un modèle génératif et ne prétend pas être parfaite. Aucun fournisseur externe n'est connecté par défaut.
+## Pipeline
 
-## Architecture
+`INPUT → CONTEXT → TASK ROUTER → PLANNER → MODEL/TOOLS → VERIFICATION → MEMORY → RESPONSE`
 
-`SovereignMasterEngine` orchestre contexte, classification, planification, exécution locale, vérification et réponse. Les packages `reasoning`, `knowledge`, `verification`, `memory`, `models`, `tools`, `language`, `spiritual`, `voice`, `security`, `admin` et `diagnostics` sont conçus comme des points d'extension.
+The core is `SovereignMasterEngine`. Providers implement `BaseModelProvider`; `ModelRegistry` discovers the configured provider. Without credentials, the engine starts safely and reports that no generative model is configured. It never fabricates external research or verification.
 
-## Installation et lancement
+## Run
 
 ```bash
 python -m unittest discover -s tests
 python main.py
 ```
 
-Le serveur écoute `0.0.0.0` sur `PORT` (8080 par défaut). Aucun paquet externe n'est requis pour cette fondation.
-
-## Configuration
-
-Copier `.env.example` vers la configuration de l'environnement. Ne jamais ajouter de secrets à GitHub. `MODEL_PROVIDER` et `VOICE_ENABLED` ne rendent pas une intégration fonctionnelle sans implémentation réelle du fournisseur.
+Railway uses `web: python main.py` and supplies `PORT`.
 
 ## API
 
 - `GET /health`
 - `GET /api/v1/status`
 - `GET /api/v1/capabilities`
-- `POST /api/v1/chat` avec `message`, `session_id`, `language` et `mode`
+- `POST /api/v1/chat` with `message`, optional `session_id`, `language`, and `mode`
 
-Sans modèle configuré, `/api/v1/chat` retourne explicitement une réponse locale limitée et un avertissement.
+## Provider configuration
 
-## Railway
+`MODEL_PROVIDER=openai_compatible`, `MODEL_NAME=...`, `MODEL_BASE_URL=...`, and `MODEL_API_KEY=...` enable the generic compatible adapter. These values belong in Railway secrets/environment settings, never GitHub. Other adapters can be registered without changing the orchestrator.
 
-Le `Procfile` conserve `web: python main.py`. Railway doit fournir `PORT` automatiquement. PostgreSQL n'est pas modifié par cette phase; aucune migration destructive n'a été ajoutée.
+## Persistence
 
-## Prochaines phases
+`database/` provides a PostgreSQL-aware adapter and a SQLite test fallback. `database/migrations/001_initial.sql` is additive and must be reviewed, backed up, and applied by an operator; this implementation does not connect to or alter production PostgreSQL automatically.
 
-Ajouter une implémentation de fournisseur via `BaseModelProvider`, puis PostgreSQL/Alembic, authentification réelle, administration protégée, recherche documentaire, tests API, voix et vision. Chaque capacité devra être testée avant d'être annoncée comme active.
+## Security and controls
+
+Authentication, permissions, rate-limit building blocks, and `AdminControl` are present. A production deployment still needs HTTPS, durable token/session management, secret rotation, audit logging, and protected admin routes before exposing administration publicly.
+
+## Evidence policy and spiritual mode
+
+Responses carry `VERIFIED`, `INFERENCE`, `INTERPRETATION`, or `UNCERTAIN` status. Current model responses are `UNCERTAIN` unless an independent verification system is implemented. `PROPHÈTE KESMANER HENRY` is a public identity/style configuration; spiritual interpretations are not presented as objectively verified revelations.
+
+## Not yet implemented
+
+Real web research connectors, document/vector retrieval, voice providers, vision, durable PostgreSQL repository wiring, full admin API, and production authentication require external infrastructure and separate testing. No claim is made that these placeholders are functional.

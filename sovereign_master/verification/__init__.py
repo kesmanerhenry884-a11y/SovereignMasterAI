@@ -1,2 +1,2 @@
-from .verifier import VerificationEngine
-__all__ = ["VerificationEngine"]
+from .confidence import EvidenceStatus, VerificationResult
+__all__=["EvidenceStatus","VerificationResult"]

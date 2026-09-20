@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum
-class EvidenceType(str, Enum): FACT="FACT"; SOURCE="SOURCE"; INTERPRETATION="INTERPRETATION"; HYPOTHESIS="HYPOTHESIS"; UNKNOWN="UNKNOWN"
+class EvidenceStatus(str,Enum): VERIFIED="VERIFIED"; INFERENCE="INFERENCE"; INTERPRETATION="INTERPRETATION"; UNCERTAIN="UNCERTAIN"
 @dataclass
-class Confidence:
-    value: float; evidence: EvidenceType; reason: str = ""
+class VerificationResult:
+    status: str
+    confidence: float
+    warnings: list[str]
