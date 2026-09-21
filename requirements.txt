@@ -1,1 +1,6 @@
-# Runtime foundation uses Python standard library. Install `psycopg[binary]` only when DATABASE_URL is PostgreSQL.
+# Runtime foundation uses Python standard library.
+# Install PostgreSQL support when DATABASE_URL points to Postgres.
+psycopg[binary]>=3.2,<4
+
+# Production web runner for stronger process management on deployment platforms.
+gunicorn>=22.0.0,<24
