@@ -4,12 +4,12 @@ from pydantic import BaseModel, Field
 
 
 class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1, description="User message to process")
-    session_id: str | None = Field(default=None, description="Optional session identifier")
-    conversation_id: str | None = Field(default=None, description="Compatibility alias for session_id")
-    language: str = Field(default="auto", description="Preferred language for the response")
-    mode: str = Field(default="general", description="Execution mode")
-    metadata: dict[str, Any] = Field(default_factory=dict, description="Optional structured metadata")
+    message: str = Field(..., min_length=1, max_length=50000, description="User message to process")
+    session_id: str | None = None
+    conversation_id: str | None = None
+    language: str = "auto"
+    mode: str = "general"
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ChatResponse(BaseModel):
