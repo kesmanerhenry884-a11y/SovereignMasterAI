@@ -1,6 +1,6 @@
-from sovereign_master.security.authentication import TokenAuthenticator
-
-
-def require_admin(token: str | None, username: str | None, secret: str | None = None) -> bool:
-    authenticator = TokenAuthenticator(secret=secret)
-    return authenticator.verify_token(token, username)
+# Runtime dependencies for the current foundation.
+# Optional integrations must be added only when implemented and tested.
+python-dotenv>=1.0.1
+psycopg[binary]>=3.2.1
+pytest>=8.3.0
+requests>=2.32.0

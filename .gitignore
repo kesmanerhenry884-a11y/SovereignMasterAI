@@ -1,0 +1,9 @@
+# Do not commit local secrets or generated files.
+.env
+.env.*
+!.env.example
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
+venv/
