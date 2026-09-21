@@ -1,10 +1,4 @@
-from datetime import datetime, timezone
-from typing import Any
+from sovereign_master.jobs.queue import JOB_QUEUE
+from sovereign_master.observability.logger import OBSERVABILITY_LOGGER
 
-class EventLogger:
-    def __init__(self): self.events: list[dict[str, Any]] = []
-    def record(self, event_type: str, payload: dict[str, Any] | None = None):
-        event = {"type": event_type, "payload": payload or {}, "timestamp": datetime.now(timezone.utc).isoformat()}
-        self.events.append(event)
-        return event
-    def recent(self, limit: int = 50): return self.events[-limit:]
+__all__ = ["JOB_QUEUE", "OBSERVABILITY_LOGGER"]
