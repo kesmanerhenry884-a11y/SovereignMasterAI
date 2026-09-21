@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: sovereign-master-ai
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: ENVIRONMENT
+        value: production
+      - key: ENGINE_NAME
+        value: Sovereign Master AI
+      - key: ENGINE_VERSION
+        value: 0.1.0
+      - key: MODEL_PROVIDER
+        sync: false
+      - key: MODEL_NAME
+        sync: false
+      - key: MODEL_BASE_URL
+        sync: false
+      - key: MODEL_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_SECRET
+        sync: false
