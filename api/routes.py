@@ -1,11 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from database import DatabaseAdapter, MemoryRepository
 from sovereign_master.core.engine import SovereignMasterEngine
-from sovereign_master.models.registry import ModelRegistry
-from sovereign_master.memory.memory_engine import MemoryEngine
-from sovereign_master.diagnostics.health import health
+from sovereign_master.diagnostics.health import HealthService, health
 from sovereign_master.jobs.queue import JOB_QUEUE
+from sovereign_master.memory.memory_engine import MemoryEngine
+from sovereign_master.models.registry import ModelRegistry
 from sovereign_master.observability.logger import OBSERVABILITY_LOGGER
 
 from .schemas import ChatRequest, ChatResponse
@@ -24,49 +24,39 @@ def build_memory():
 
 
 engine = SovereignMasterEngine(models=ModelRegistry(), memory=build_memory())
+health_service = HealthService()
 
 app = FastAPI(
-    title="Sovereign Master AI",
+    title="PROPHÈTE KESMANER HENRY — Sovereign Master AI",
     version="2.0.0",
-    description="Modular orchestration platform for reasoning, knowledge, memory, safety and verification.",
+    description=(
+        "Modular AI orchestration engine for reasoning, knowledge, memory, "
+        "research, media and multilingual workflows."
+    ),
 )
 
 
 @app.get("/")
 async def root():
     OBSERVABILITY_LOGGER.record("api.root", {"status": "ok"})
-    return {
-        "message": "Sovereign Master AI",
-        "status": "ok",
-        "engine": "Sovereign Master AI",
-        "version": "2.0.0",
-    }
+    return {**health_service.check(), "message": "Sovereign Master AI"}
 
 
 @app.get("/health")
-async def health_route():
-    OBSERVABILITY_LOGGER.record("health.check", {"status": "ok"})
-    return {"status": "ok", "engine": "Sovereign Master AI", "version": "2.0.0"}
+def health_endpoint():
+    result = health_service.check()
+    OBSERVABILITY_LOGGER.record("health.check", result)
+    return result
 
 
 @app.get("/api/v1/status")
-async def status_route():
-    return {
-        **health(),
-        "providers": engine.orchestrator.models.health(),
-        "capabilities": engine.orchestrator.models.metadata(),
-        "memory": {
-            "enabled": engine.orchestrator.memory.enabled,
-            "persistent": getattr(engine.orchestrator.memory, "repository", None) is not None,
-            "context_limit": getattr(engine.orchestrator.memory, "context_limit", 20),
-        },
-        "jobs": JOB_QUEUE.list(),
-    }
+def status_endpoint():
+    return {**health(), **engine.status(), "jobs": JOB_QUEUE.list()}
 
 
 @app.get("/api/v1/capabilities")
-async def capabilities_route():
-    return engine.orchestrator.models.metadata()
+def capabilities_endpoint():
+    return engine.capabilities()
 
 
 @app.get("/api/v1/jobs")
@@ -77,10 +67,7 @@ async def list_jobs():
 
 @app.get("/api/v1/observability")
 async def observability_route():
-    return {
-        "events": OBSERVABILITY_LOGGER.recent(limit=20),
-        "jobs": JOB_QUEUE.list(),
-    }
+    return {"events": OBSERVABILITY_LOGGER.recent(limit=20), "jobs": JOB_QUEUE.list()}
 
 
 @app.post("/api/v1/jobs/queue")
@@ -92,17 +79,31 @@ async def enqueue_job(payload: dict):
 
 
 @app.post("/api/v1/chat", response_model=ChatResponse)
-async def chat_route(payload: ChatRequest):
-    OBSERVABILITY_LOGGER.record("chat.request", {"session_id": payload.session_id, "mode": payload.mode})
-    result = engine.process(
-        payload.message,
-        payload.session_id,
-        payload.language,
-        payload.mode,
-    )
-    if not result.get("success"):
-        OBSERVABILITY_LOGGER.record("chat.failed", {"session_id": payload.session_id, "warnings": result.get("warnings", [])})
-        return {**result, "answer": result.get("answer", "")}
-
-    OBSERVABILITY_LOGGER.record("chat.success", {"session_id": payload.session_id, "verification_status": result.get("verification_status")})
-    return ChatResponse(**result)
+def chat(request: ChatRequest):
+    conversation_id = request.conversation_id or request.session_id
+    try:
+        result = engine.process(
+            message=request.message,
+            session_id=conversation_id,
+            language=request.language,
+            mode=request.mode,
+            metadata=request.metadata,
+        )
+        result.update({
+            "response": result.get("answer", ""),
+            "mode": request.mode,
+            "conversation_id": conversation_id,
+        })
+        if not result.get("success"):
+            OBSERVABILITY_LOGGER.record("chat.failed", {"conversation_id": conversation_id})
+            raise HTTPException(status_code=400, detail=result)
+        OBSERVABILITY_LOGGER.record("chat.success", {"conversation_id": conversation_id})
+        return ChatResponse(**result)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        OBSERVABILITY_LOGGER.record("chat.error", {"error": str(exc)})
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "ENGINE_ERROR", "message": str(exc)},
+        ) from exc
