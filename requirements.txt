@@ -1,6 +1,16 @@
-# Runtime dependencies for the current foundation.
-# Optional integrations must be added only when implemented and tested.
-python-dotenv>=1.0.1
-psycopg[binary]>=3.2.1
-pytest>=8.3.0
-requests>=2.32.0
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+pydantic>=2.8,<3
+pydantic-settings>=2.4,<3
+
+httpx>=0.27,<1
+python-dotenv>=1.0,<2
+
+psycopg[binary]>=3.2,<4
+SQLAlchemy>=2.0,<3
+pgvector>=0.3,<1
+
+numpy>=1.26,<3
+
+pytest>=8,<9
+pytest-asyncio>=0.24,<1
