@@ -1,6 +1,6 @@
-# Runtime foundation uses Python standard library.
-# Install PostgreSQL support when DATABASE_URL points to Postgres.
-psycopg[binary]>=3.2,<4
+from sovereign_master.security.authentication import TokenAuthenticator
 
-# Production web runner for stronger process management on deployment platforms.
-gunicorn>=22.0.0,<24
+
+def require_admin(token: str | None, username: str | None, secret: str | None = None) -> bool:
+    authenticator = TokenAuthenticator(secret=secret)
+    return authenticator.verify_token(token, username)
