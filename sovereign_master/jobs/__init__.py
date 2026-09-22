@@ -1,16 +1,8 @@
-from dataclasses import dataclass
-from typing import Any
+"""Background reminder boundary.
 
-@dataclass
-class Job:
-    id: str
-    kind: str
-    payload: dict[str, Any]
-    status: str = "queued"
+Production clients should poll ``POST /api/v1/reminders/poll`` from a worker,
+or replace this boundary with a durable scheduler/push provider.
+"""
+from .reminders import REMINDER_SERVICE, Reminder, ReminderService
 
-class JobQueue:
-    def __init__(self): self.jobs: dict[str, Job] = {}
-    def enqueue(self, job: Job) -> Job:
-        self.jobs[job.id] = job
-        return job
-    def get(self, job_id: str): return self.jobs.get(job_id)
+__all__ = ["REMINDER_SERVICE", "Reminder", "ReminderService"]
