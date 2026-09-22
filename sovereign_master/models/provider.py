@@ -4,7 +4,8 @@ from dataclasses import asdict, dataclass
 from typing import Any
 import json
 import os
-import urllib.request
+
+import httpx
 
 
 @dataclass
@@ -18,7 +19,7 @@ class GenerationResult:
 
 
 class AIProvider(ABC):
-    """Modern provider contract; legacy providers remain supported separately."""
+    """Modern provider contract for adapters returning GenerationResult."""
 
     name: str = "unknown"
 
@@ -42,7 +43,7 @@ class ModelCapabilities:
 
 
 class BaseModelProvider(ABC):
-    """Legacy provider contract retained for existing adapters."""
+    """Legacy string-returning provider contract retained for compatibility."""
 
     name = "base"
     model = ""
@@ -78,7 +79,6 @@ class BaseModelProvider(ABC):
         context: dict[str, Any] | None = None,
         plan: list[str] | None = None,
     ) -> GenerationResult:
-        """Adapt an existing string provider to the normalized result contract."""
         text = self.generate(message, {**(context or {}), "plan": plan or []})
         return GenerationResult(
             text=text,
@@ -104,32 +104,55 @@ class LocalFallbackProvider(BaseModelProvider):
 
 
 class OpenAICompatibleProvider(BaseModelProvider):
-    """Adapter for any OpenAI-compatible HTTP API; credentials stay in env vars."""
+    """OpenAI-compatible chat adapter with both legacy and normalized APIs."""
 
     name = "openai_compatible"
     capabilities = ModelCapabilities(chat=True, streaming=True, structured_output=True)
-    timeout_seconds = 60
+    timeout_seconds = 120
 
     def __init__(self, api_key=None, model=None, base_url=None):
-        self.api_key = api_key or os.getenv("MODEL_API_KEY") or os.getenv("OPENAI_API_KEY")
-        self.model = model or os.getenv("MODEL_NAME", "")
-        self.base_url = (base_url or os.getenv("MODEL_BASE_URL", "https://api.openai.com/v1")).rstrip("/")
+        self.api_key = api_key or os.getenv("AI_API_KEY") or os.getenv("MODEL_API_KEY") or os.getenv("OPENAI_API_KEY")
+        self.base_url = (base_url or os.getenv("AI_BASE_URL") or os.getenv("MODEL_BASE_URL") or "https://api.openai.com/v1").rstrip("/")
+        self.model = model or os.getenv("AI_MODEL") or os.getenv("MODEL_NAME", "")
 
-    def _request(self, prompt):
-        if not self.api_key or not self.model:
-            raise RuntimeError("MODEL_API_KEY and MODEL_NAME are required")
-        body = json.dumps({"model": self.model, "messages": [{"role": "user", "content": prompt}]}).encode()
-        req = urllib.request.Request(
-            self.base_url + "/chat/completions",
-            body,
-            {"Content-Type": "application/json", "Authorization": "Bearer " + self.api_key},
+    @staticmethod
+    def _system_prompt() -> str:
+        return (
+            "You are the core intelligence provider of Sovereign Master AI.\n"
+            "Be accurate, do not invent sources or facts, distinguish verified information "
+            "from uncertainty, preserve the user's meaning, answer in the requested language "
+            "when possible, and follow the application's safety policies."
         )
-        with urllib.request.urlopen(req, timeout=self.timeout_seconds) as response:
-            data = json.loads(response.read().decode())
-        return data["choices"][0]["message"]["content"]
 
-    def generate(self, prompt, context=None):
-        return self._request(prompt)
+    def _request(self, message: str, context: dict[str, Any] | None = None, plan: list[str] | None = None) -> tuple[str, dict[str, Any]]:
+        if not self.api_key or not self.model:
+            raise RuntimeError("AI provider is not configured. Set AI_API_KEY and AI_MODEL.")
+        messages: list[dict[str, str]] = [{"role": "system", "content": self._system_prompt()}]
+        if context:
+            messages.append({"role": "system", "content": "Request context:\n" + str(context)})
+        messages.append({"role": "user", "content": message})
+        if plan:
+            messages.append({"role": "system", "content": "Execution plan:\n" + "\n".join(plan)})
+        response = httpx.post(
+            f"{self.base_url}/chat/completions",
+            headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},
+            json={"model": self.model, "messages": messages},
+            timeout=httpx.Timeout(float(self.timeout_seconds)),
+        )
+        response.raise_for_status()
+        data = response.json()
+        text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        if not text:
+            raise RuntimeError("The AI provider returned an empty response.")
+        return text, {"raw_id": data.get("id")}
+
+    def generate(self, prompt: str, context: dict[str, Any] | None = None) -> str:
+        text, _ = self._request(prompt, context)
+        return text
+
+    def generate_result(self, message: str, context=None, plan=None) -> GenerationResult:
+        text, metadata = self._request(message, context, plan)
+        return GenerationResult(text=text, provider=self.name, model=self.model, metadata=metadata)
 
     def health(self):
         configured = bool(self.api_key and self.model)
@@ -144,7 +167,7 @@ class OpenAICompatibleProvider(BaseModelProvider):
 class ProviderFactory:
     @staticmethod
     def create_from_environment():
-        selected = os.getenv("MODEL_PROVIDER", "").strip().lower()
+        selected = (os.getenv("AI_PROVIDER") or os.getenv("MODEL_PROVIDER") or "").strip().lower()
         if selected in {"openai", "openai_compatible"}:
             return OpenAICompatibleProvider()
         return LocalFallbackProvider()

@@ -1,10 +1,5 @@
-from dataclasses import asdict
-from typing import Any
+"""Compatibility exports for provider contracts."""
 
-from .provider import GenerationResult
+from .provider import AIProvider, GenerationResult
 
-
-# ... existing imports and class body are intentionally represented by the
-# concrete implementation below so legacy string providers and modern result
-# providers can coexist.
-from .context import RequestContext
+__all__ = ["AIProvider", "GenerationResult"]

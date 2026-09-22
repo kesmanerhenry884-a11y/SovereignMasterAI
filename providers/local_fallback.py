@@ -1,4 +1,5 @@
-from providers.openai_compatible import OpenAICompatibleProvider
-from providers.local_fallback import LocalFallbackProvider
+"""Public local fallback adapter."""
 
-__all__ = ["OpenAICompatibleProvider", "LocalFallbackProvider"]
+from sovereign_master.models.provider import LocalFallbackProvider
+
+__all__ = ["LocalFallbackProvider"]
