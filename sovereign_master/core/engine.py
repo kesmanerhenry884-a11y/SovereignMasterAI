@@ -1,97 +1,23 @@
-"""Public engine facade preserving legacy process() while exposing modern chat() contract."""
+"""Public engine facade."""
 from typing import Any
-
 from sovereign_master.core.context import RequestContext
 from sovereign_master.core.orchestrator import MasterOrchestrator, OrchestrationResult
-
+from sovereign_master.core.module_registry import module_inventory
 
 class SovereignMasterEngine:
     def __init__(self, **kwargs: Any):
-        self.orchestrator = MasterOrchestrator(
-            models=kwargs.get("models"),
-            memory=kwargs.get("memory"),
-            router=kwargs.get("router"),
-            planner=kwargs.get("planner"),
-            safety=kwargs.get("safety"),
-            verification=kwargs.get("verification"),
-        )
+        self.orchestrator = MasterOrchestrator(models=kwargs.get("models"), memory=kwargs.get("memory"), router=kwargs.get("router"), planner=kwargs.get("planner"), safety=kwargs.get("safety"), verification=kwargs.get("verification"))
 
-    def process(
-        self,
-        message: str,
-        session_id: str | None = None,
-        language: str | None = "auto",
-        mode: str = "general",
-        metadata: dict[str, Any] | None = None,
-        conversation_id: str | None = None,
-    ) -> dict[str, Any]:
-        context = RequestContext(
-            message=message,
-            session_id=conversation_id or session_id,
-            language=language or "auto",
-            mode=mode,
-            metadata=metadata or {},
-        )
-        result = self.orchestrator.handle(context)
-        return result
+    def process(self, message, session_id=None, language="auto", mode="general", metadata=None, conversation_id=None):
+        context = RequestContext(message=message, session_id=conversation_id or session_id, language=language or "auto", mode=mode, metadata=metadata or {})
+        return self.orchestrator.handle(context)
 
-    def chat(
-        self,
-        message: str,
-        language: str | None = None,
-        conversation_id: str | None = None,
-        mode: str = "general",
-        metadata: dict[str, Any] | None = None,
-    ) -> OrchestrationResult:
-        context = RequestContext(
-            message=message,
-            language=language or "auto",
-            conversation_id=conversation_id,
-            mode=mode,
-            metadata=metadata or {},
-        )
-        return self.orchestrator.execute(context)
+    def chat(self, message, language=None, conversation_id=None, mode="general", metadata=None) -> OrchestrationResult:
+        return self.orchestrator.execute(RequestContext(message=message, language=language or "auto", conversation_id=conversation_id, mode=mode, metadata=metadata or {}))
 
-    def status(self) -> dict[str, Any]:
+    def status(self):
         memory = self.orchestrator.memory
-        return {
-            "name": "PROPHÈTE KESMANER HENRY — Sovereign Master AI",
-            "version": "2.0.0",
-            "status": "online",
-            "architecture": "modular",
-            "providers": self.orchestrator.models.health(),
-            "memory": {
-                "enabled": memory.enabled,
-                "persistent": getattr(memory, "repository", None) is not None,
-                "context_limit": getattr(memory, "context_limit", 20),
-            },
-        }
+        return {"name": "PROPHÈTE KESMANER HENRY — Sovereign Master AI", "version": "2.0.0", "status": "online", "architecture": "modular", "providers": self.orchestrator.models.health(), "memory": {"enabled": memory.enabled, "persistent": getattr(memory, "repository", None) is not None, "context_limit": getattr(memory, "context_limit", 20)}, "reminders": {"enabled": True, "client_delivery_required": True}}
 
-    def capabilities(self) -> dict[str, Any]:
-        provider_metadata = self.orchestrator.models.metadata()
-        return {
-            "reasoning": True,
-            "planning": True,
-            "memory": self.orchestrator.memory.enabled,
-            "knowledge": True,
-            "rag": False,
-            "pgvector": False,
-            "research": True,
-            "verification": True,
-            "security": True,
-            "multilingual": True,
-            "image_pipeline": True,
-            "video_pipeline": True,
-            "voice_pipeline": True,
-            "prophetic_mode": True,
-            "background_jobs": True,
-            "provider_abstraction": True,
-            "location": {
-                "enabled": True,
-                "consent_required": True,
-                "position_storage": True,
-                "route_preview": True,
-                "turn_by_turn_navigation": False,
-            },
-            "providers": provider_metadata,
-        }
+    def capabilities(self):
+        return {"reasoning": True, "planning": True, "memory": self.orchestrator.memory.enabled, "knowledge": True, "rag": False, "pgvector": False, "research": True, "verification": True, "security": True, "multilingual": True, "image_pipeline": True, "video_pipeline": True, "voice_pipeline": True, "prophetic_mode": True, "background_jobs": True, "provider_abstraction": True, "reminders": {"enabled": True, "sound_brand": "PROPHÈTE KESMANER HENRY", "client_delivery_required": True}, "module_inventory": module_inventory()}
