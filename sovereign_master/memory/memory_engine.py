@@ -1,4 +1,4 @@
-"""Session and long-term memory with explicit importance and privacy controls."""
+"""Long-term memory with importance metadata, user scope and explicit recall controls."""
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import os
@@ -36,11 +36,6 @@ class MemoryRecord:
 
 
 class MemoryEngine:
-    """Conversation memory plus opt-in durable memories.
-
-    Secrets are deliberately not stored here; use ``SecretsVault`` instead.
-    """
-
     def __init__(self, enabled=True, repository=None):
         self.enabled = enabled
         self.repository = repository
@@ -70,31 +65,26 @@ class MemoryEngine:
             raise ValueError("user_id, key, and value are required")
         record = MemoryRecord(key=key.strip(), value=value.strip(), memory_type=memory_type, importance=importance, tags=list(tags or []), source=source)
         self.memories.setdefault(user_id, {})[record.key] = record
-        if self.repository and hasattr(self.repository, "upsert_memory"):
-            self.repository.upsert_memory(user_id, record.to_dict())
         return record.to_dict()
 
     def recall(self, user_id: str, key: str | None = None, *, limit=50) -> list[dict[str, Any]]:
         if not self.enabled or not user_id:
             return []
-        if self.repository and hasattr(self.repository, "get_memories"):
-            return self.repository.get_memories(user_id, key=key, limit=limit)
         records = self.memories.get(user_id, {})
         selected = [records[key]] if key and key in records else list(records.values()) if not key else []
         selected.sort(key=lambda item: (item.importance, item.updated_at), reverse=True)
         return [item.to_dict() for item in selected[: max(1, min(int(limit), 100))]]
 
     def forget(self, user_id: str, key: str | None = None) -> int:
-        removed = 0
-        if self.repository and hasattr(self.repository, "delete_memories"):
-            removed = self.repository.delete_memories(user_id, key)
         records = self.memories.get(user_id, {})
         if key is None:
-            removed = max(removed, len(records))
+            removed = len(records)
             self.memories.pop(user_id, None)
-        elif records.pop(key, None) is not None:
-            removed = max(removed, 1)
-        return removed
+            return removed
+        if key in records:
+            del records[key]
+            return 1
+        return 0
 
     def delete(self, session_id):
         self.sessions.pop(session_id, None)

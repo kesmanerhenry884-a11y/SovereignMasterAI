@@ -1,6 +1,4 @@
-"""Provider package exports."""
-
-from .local_fallback import LocalFallbackProvider
-from .openai_compatible import OpenAICompatibleProvider
+"""Public provider package exports."""
+from sovereign_master.models.provider import OpenAICompatibleProvider, LocalFallbackProvider
 
 __all__ = ["OpenAICompatibleProvider", "LocalFallbackProvider"]

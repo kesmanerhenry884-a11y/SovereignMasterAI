@@ -1,3 +1,4 @@
+"""Core engine interfaces for the Sovereign Master AI runtime."""
 from dataclasses import dataclass, field
 from typing import Any
 

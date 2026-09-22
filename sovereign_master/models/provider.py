@@ -10,8 +10,6 @@ import httpx
 
 @dataclass
 class GenerationResult:
-    """Normalized provider response used by modern orchestration callers."""
-
     text: str
     provider: str
     model: str
@@ -19,8 +17,6 @@ class GenerationResult:
 
 
 class AIProvider(ABC):
-    """Modern provider contract for adapters returning GenerationResult."""
-
     name: str = "unknown"
 
     @abstractmethod
@@ -43,8 +39,6 @@ class ModelCapabilities:
 
 
 class BaseModelProvider(ABC):
-    """Legacy string-returning provider contract retained for compatibility."""
-
     name = "base"
     model = ""
     capabilities = ModelCapabilities()
@@ -80,12 +74,7 @@ class BaseModelProvider(ABC):
         plan: list[str] | None = None,
     ) -> GenerationResult:
         text = self.generate(message, {**(context or {}), "plan": plan or []})
-        return GenerationResult(
-            text=text,
-            provider=self.name,
-            model=getattr(self, "model", ""),
-            metadata={"legacy_adapter": True},
-        )
+        return GenerationResult(text=text, provider=self.name, model=getattr(self, "model", ""), metadata={"legacy_adapter": True})
 
 
 class LocalFallbackProvider(BaseModelProvider):
@@ -104,8 +93,6 @@ class LocalFallbackProvider(BaseModelProvider):
 
 
 class OpenAICompatibleProvider(BaseModelProvider):
-    """OpenAI-compatible chat adapter with both legacy and normalized APIs."""
-
     name = "openai_compatible"
     capabilities = ModelCapabilities(chat=True, streaming=True, structured_output=True)
     timeout_seconds = 120
@@ -127,12 +114,14 @@ class OpenAICompatibleProvider(BaseModelProvider):
     def _request(self, message: str, context: dict[str, Any] | None = None, plan: list[str] | None = None) -> tuple[str, dict[str, Any]]:
         if not self.api_key or not self.model:
             raise RuntimeError("AI provider is not configured. Set AI_API_KEY and AI_MODEL.")
+
         messages: list[dict[str, str]] = [{"role": "system", "content": self._system_prompt()}]
         if context:
             messages.append({"role": "system", "content": "Request context:\n" + str(context)})
         messages.append({"role": "user", "content": message})
         if plan:
             messages.append({"role": "system", "content": "Execution plan:\n" + "\n".join(plan)})
+
         response = httpx.post(
             f"{self.base_url}/chat/completions",
             headers={"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"},

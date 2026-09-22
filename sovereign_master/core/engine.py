@@ -1,12 +1,11 @@
+"""Public engine facade preserving legacy process() while exposing modern chat() contract."""
 from typing import Any
 
-from .context import RequestContext
-from .orchestrator import MasterOrchestrator, OrchestrationResult
+from sovereign_master.core.context import RequestContext
+from sovereign_master.core.orchestrator import MasterOrchestrator, OrchestrationResult
 
 
 class SovereignMasterEngine:
-    """Public compatibility facade for the Sovereign Master AI runtime."""
-
     def __init__(self, **kwargs: Any):
         self.orchestrator = MasterOrchestrator(
             models=kwargs.get("models"),
@@ -26,15 +25,15 @@ class SovereignMasterEngine:
         metadata: dict[str, Any] | None = None,
         conversation_id: str | None = None,
     ) -> dict[str, Any]:
-        identifier = conversation_id or session_id
         context = RequestContext(
             message=message,
-            session_id=identifier,
+            session_id=conversation_id or session_id,
             language=language or "auto",
             mode=mode,
             metadata=metadata or {},
         )
-        return self.orchestrator.handle(context)
+        result = self.orchestrator.handle(context)
+        return result
 
     def chat(
         self,
@@ -69,7 +68,6 @@ class SovereignMasterEngine:
         }
 
     def capabilities(self) -> dict[str, Any]:
-        """Report implemented boundaries without claiming unconfigured integrations."""
         provider_metadata = self.orchestrator.models.metadata()
         return {
             "reasoning": True,
