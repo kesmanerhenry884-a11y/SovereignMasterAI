@@ -1,16 +1,15 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
 @dataclass
 class TaskPlan:
     category: str
-    modules: list[str] = field(default_factory=list)
-    steps: list[str] = field(default_factory=list)
+    modules: list[str]
+    steps: list[str]
     route: Any = None
 
 
-# New public name used by the modern orchestration API.
 ExecutionPlan = TaskPlan
 
 
@@ -23,9 +22,15 @@ class Planner:
             modules += ["research", "knowledge", "verification"]
         if category in {"media", "vision", "voice"}:
             modules += [category, "safety"]
+        if category == "location":
+            modules += ["location", "safety"]
         if mode == "spiritual" or category == "spiritual":
             modules += ["spiritual", "verification"]
-        return TaskPlan(category, list(dict.fromkeys(modules)), ["classify", "plan", "execute", "verify", "respond"])
+        return TaskPlan(
+            category=category,
+            modules=list(dict.fromkeys(modules)),
+            steps=["classify", "plan", "execute", "verify", "respond"],
+        )
 
     def create_plan(self, context, route) -> TaskPlan:
         plan = self.create(route.name, context.mode)
