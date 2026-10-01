@@ -2,8 +2,41 @@
 .env
 .env.*
 !.env.example
+
+# Python
 __pycache__/
 .pytest_cache/
 *.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.Python
+
+# Virtual environments
 .venv/
 venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+forge.db
+
+# Logs
+*.log
+logs/
+
+# OS
+Thumbs.db
+.DS_Store
